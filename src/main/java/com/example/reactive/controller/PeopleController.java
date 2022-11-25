@@ -5,6 +5,7 @@ import com.example.reactive.repository.PeopleRepository;
 import com.example.reactive.util.PersonDTOConverter;
 import com.example.reactive.util.PersonGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping(produces = "application/json")
@@ -33,6 +36,11 @@ public class PeopleController {
     @GetMapping("/people")
     public Flux<Person> index() {
         return peopleRepository.findAll();
+    }
+
+    @GetMapping(value = "/people/delayed", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<Person> indexWithDelay() {
+        return peopleRepository.findAll().delayElements(Duration.ofSeconds(1));
     }
 
     @GetMapping("/new/random")
