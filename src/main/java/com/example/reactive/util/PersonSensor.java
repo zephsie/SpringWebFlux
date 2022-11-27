@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +18,7 @@ public class PersonSensor {
 
     private final ApplicationEventPublisher publisher;
 
-    private final SecureRandom random = new SecureRandom();
+    private final Random random = new SecureRandom();
 
     private final PersonGenerator personGenerator;
 

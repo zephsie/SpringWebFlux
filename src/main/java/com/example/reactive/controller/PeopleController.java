@@ -4,7 +4,10 @@ import com.example.reactive.model.Person;
 import com.example.reactive.repository.PeopleRepository;
 import com.example.reactive.util.PersonDTOConverter;
 import com.example.reactive.util.PersonGenerator;
+import com.example.reactive.view.PersonView;
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
@@ -25,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @RestController
+@Slf4j
 @RequestMapping(produces = "application/json")
 public class PeopleController {
 
@@ -44,13 +48,22 @@ public class PeopleController {
     }
 
     @GetMapping("/people")
+    @JsonView(PersonView.Min.class)
     public Flux<Person> index() {
         return peopleRepository.findAll();
     }
 
+    @GetMapping("/people/{id}")
+    @JsonView(PersonView.Full.class)
+    public Mono<ResponseEntity<Person>> show(@PathVariable String id) {
+        return peopleRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
     @GetMapping(value = "/people/delayed", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<Person> indexWithDelay() {
-        return peopleRepository.findAll().delayElements(Duration.ofSeconds(1));
+        return peopleRepository.findAll().delayElements(Duration.ofMillis(100));
     }
 
     @GetMapping("/new/random")

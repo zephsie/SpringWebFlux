@@ -35,7 +35,7 @@ public class TemperatureController {
     public void handleMessage(Temperature temperature) {
         List<SseEmitter> deadEmitters = new ArrayList<>();
 
-        log.info("Sending temperature: {}", temperature.getValue());
+        // log.info("Sending temperature: {}", temperature.getValue());
 
         clients.forEach(emitter -> {
             try {
