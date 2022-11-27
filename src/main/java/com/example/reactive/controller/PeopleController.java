@@ -13,10 +13,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,7 +46,7 @@ public class PeopleController {
 
     @GetMapping("/people")
     @JsonView(PersonView.Min.class)
-    public Flux<Person> index() {
+    public Flux<Person> getAllPeople() {
         return peopleRepository.findAll();
     }
 
@@ -58,17 +55,29 @@ public class PeopleController {
     public Mono<ResponseEntity<Person>> show(@PathVariable String id) {
         return peopleRepository.findById(id)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .timeout(Duration.ofSeconds(0))
+                .onErrorResume(throwable -> {
+                    log.error("Error: {}", throwable.getMessage());
+                    return Mono.just(ResponseEntity.internalServerError().build());
+                });
     }
 
     @GetMapping(value = "/people/delayed", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @JsonView(PersonView.Min.class)
     public Flux<Person> indexWithDelay() {
         return peopleRepository.findAll().delayElements(Duration.ofMillis(100));
     }
 
     @GetMapping("/new/random")
-    public Mono<Person> newRandom() {
-        return peopleRepository.save(personDTOConverter.convertToEntity(personGenerator.createRandomPersonDTO()));
+    public Mono<ResponseEntity<Person>> createRandom() {
+        return peopleRepository.save(personDTOConverter.convertToEntity(personGenerator.createRandomPersonDTO()))
+                .map(ResponseEntity::ok)
+                .timeout(Duration.ofSeconds(2))
+                .onErrorResume(throwable -> {
+                    log.error("Error: {}", throwable.getMessage());
+                    return Mono.empty();
+                });
     }
 
     @GetMapping("/people-stream")
@@ -97,23 +106,15 @@ public class PeopleController {
         deadEmitters.forEach(clients::remove);
     }
 
-    @GetMapping("/new/random/many")
-    public Flux<Person> newRandomMany() {
-        return Flux.range(1, 10)
-                .map(i -> personGenerator.createRandomPersonDTO())
-                .map(personDTOConverter::convertToEntity)
-                .flatMap(peopleRepository::save);
-    }
-
     @GetMapping("/{name}")
     public Mono<ResponseEntity<Person>> getPersonByName(@PathVariable String name) {
         return peopleRepository.findByName(name)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/remove/all")
-    public Mono<Void> removeAll() {
-        return peopleRepository.deleteAll();
+                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .timeout(Duration.ofSeconds(2))
+                .onErrorResume(throwable -> {
+                    log.error("Error: {}", throwable.getMessage());
+                    return Mono.just(ResponseEntity.internalServerError().build());
+                });
     }
 }
